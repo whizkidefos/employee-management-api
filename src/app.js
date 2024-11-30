@@ -4,6 +4,8 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import mongoose from 'mongoose';
 import { config } from 'dotenv';
+import http from 'http';
+import WebSocketService from './services/websocket.js';
 // import { trace } from 'joi';
 
 config();
@@ -33,6 +35,20 @@ const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'MongoDB connection error:'));
 db.once('open', () => {
   console.log('Connected to MongoDB');
+});
+
+// Websocket server
+const server = http.createServer(app);
+const webSocketService = new WebSocketService(server);
+export const notificationService = new NotificationService(webSocketService);
+
+server.listen(process.env.PORT, () => {
+  console.log(`Server is running on port ${process.env.PORT}`);
+});
+
+// Routes
+app.get('/', (req, res) => {
+  res.send('Hello World!');
 });
 
 export default app;

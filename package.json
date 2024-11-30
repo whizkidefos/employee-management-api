@@ -49,7 +49,9 @@
     "pdfkit": "^0.15.1",
     "stripe": "^17.4.0",
     "twilio": "^5.3.6",
-    "winston": "^3.17.0"
+    "websocket": "^1.0.35",
+    "winston": "^3.17.0",
+    "ws": "^8.18.0"
   },
   "devDependencies": {
     "chai": "^5.1.2",
