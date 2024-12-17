@@ -1,6 +1,6 @@
 import webSocketService from './websocket.js';
-import { sendEmail } from './email.js';
-import { sendSMS } from './sms.js';
+import sendEmail from './email.js';
+import sendSMS from './sms.js';
 import User from '../models/User.js';
 
 class NotificationService {
@@ -40,5 +40,20 @@ class NotificationService {
     }
   }
 }
+
+// Create a singleton instance
+let notificationServiceInstance = null;
+
+export const initializeNotificationService = (webSocketService) => {
+  notificationServiceInstance = new NotificationService(webSocketService);
+  return notificationServiceInstance;
+};
+
+export const getNotificationService = () => {
+  if (!notificationServiceInstance) {
+    throw new Error('NotificationService not initialized');
+  }
+  return notificationServiceInstance;
+};
 
 export default NotificationService;

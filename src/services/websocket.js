@@ -1,6 +1,6 @@
 import { WebSocketServer } from 'ws';
 import jwt from 'jsonwebtoken';
-import { logger } from '../utils/logger.js';
+import logger from '../utils/logger.js';
 
 class WebSocketService {
   constructor(server) {

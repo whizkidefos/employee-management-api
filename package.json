@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "node src/app.js",
-    "dev": "nodemon src/app.js --trace-warnings",
+    "dev": "nodemon src/app.js --trace-warnings --env-file=.env --experimental-strip-types",
     "test": "mocha tests/**/*.test.js --exit",
     "test:unit": "mocha tests/unit/**/*.test.js --exit",
     "test:integration": "mocha tests/integration/**/*.test.js --exit",
@@ -36,6 +36,7 @@
   "dependencies": {
     "@googlemaps/google-maps-services-js": "^3.4.0",
     "aws-sdk": "^2.1692.0",
+    "bcrypt": "^5.1.1",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
@@ -46,6 +47,7 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.8.3",
     "multer": "^1.4.5-lts.1",
+    "nodemailer": "^6.9.16",
     "pdfkit": "^0.15.1",
     "stripe": "^17.4.0",
     "twilio": "^5.3.6",

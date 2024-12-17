@@ -5,8 +5,8 @@ import rateLimit from 'express-rate-limit';
 import mongoose from 'mongoose';
 import { config } from 'dotenv';
 import http from 'http';
+import { initializeNotificationService } from './services/notification.js';
 import WebSocketService from './services/websocket.js';
-// import { trace } from 'joi';
 
 config();
 
@@ -39,8 +39,8 @@ db.once('open', () => {
 
 // Websocket server
 const server = http.createServer(app);
-const webSocketService = new WebSocketService(server);
-export const notificationService = new NotificationService(webSocketService);
+const wsService = new WebSocketService(server);
+export const notificationService = initializeNotificationService(wsService);
 
 server.listen(process.env.PORT, () => {
   console.log(`Server is running on port ${process.env.PORT}`);
