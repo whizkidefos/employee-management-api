@@ -134,5 +134,67 @@ export const schemas = {
   locationUpdate: Joi.object({
     latitude: Joi.number().min(-90).max(90).required(),
     longitude: Joi.number().min(-180).max(180).required()
+  }),
+
+  courseCreation: Joi.object({
+    title: Joi.string().required(),
+    description: Joi.string().required(),
+    category: Joi.string().valid('COSHH', 'Conflict Resolution', 'Domestic Violence', 'Epilepsy Awareness', 'Other').required(),
+    price: Joi.number().min(0).required(),
+    duration: Joi.number().min(1).required(),
+    modules: Joi.array().items(
+      Joi.object({
+        title: Joi.string().required(),
+        description: Joi.string(),
+        duration: Joi.number(),
+        content: Joi.string(),
+        order: Joi.number().required()
+      })
+    ).required(),
+    thumbnail: Joi.string()
+  }),
+
+  courseEnrollment: Joi.object({
+    paymentMethodId: Joi.string().required()
+  }),
+
+  progressUpdate: Joi.object({
+    moduleId: Joi.string().required(),
+    completed: Joi.boolean().required()
+  }),
+
+  profileUpdate: Joi.object({
+    firstName: Joi.string(),
+    lastName: Joi.string(),
+    phoneNumber: Joi.string(),
+    jobRole: Joi.string().valid('Registered Nurse', 'Healthcare Assistant', 'Support Worker'),
+    dateOfBirth: Joi.date(),
+    gender: Joi.string().valid('male', 'female'),
+    address: Joi.object({
+      postcode: Joi.string(),
+      street: Joi.string(),
+      country: Joi.string()
+    }),
+    hasUnspentConvictions: Joi.boolean(),
+    nationality: Joi.string().valid('UK', 'EU', 'Other'),
+    rightToWork: Joi.boolean(),
+    brpNumber: Joi.string(),
+    workHistory: Joi.string()
+  }),
+
+  reference: Joi.object({
+    name: Joi.string().required(),
+    email: Joi.string().email().required(),
+    phone: Joi.string().required()
+  }),
+
+  workHistory: Joi.object({
+    workHistory: Joi.string().required()
+  }),
+
+  bankDetails: Joi.object({
+    sortCode: Joi.string().required(),
+    accountNumber: Joi.string().required(),
+    bankName: Joi.string().required()
   })
 };
