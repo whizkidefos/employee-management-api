@@ -8,16 +8,33 @@ import admin from 'firebase-admin';
 class NotificationService {
   constructor(webSocketService) {
     this.webSocketService = webSocketService;
-    
-    // Initialize Firebase Admin for push notifications
-    if (!admin.apps.length) {
+    this.isInitialized = false;
+    this.initialize();
+  }
+
+  initialize() {
+    try {
+      if (!process.env.FIREBASE_PROJECT_ID || !process.env.FIREBASE_CLIENT_EMAIL || !process.env.FIREBASE_PRIVATE_KEY) {
+        logger.warn('Firebase credentials not found. Push notifications will be disabled.');
+        return;
+      }
+
+      const serviceAccount = {
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
+      };
+
       admin.initializeApp({
-        credential: admin.credential.cert({
-          projectId: process.env.FIREBASE_PROJECT_ID,
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-          privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n')
-        })
+        credential: admin.credential.cert(serviceAccount)
       });
+
+      this.messaging = admin.messaging();
+      this.isInitialized = true;
+      logger.info('Firebase initialized successfully');
+    } catch (error) {
+      logger.error('Error initializing Firebase:', error);
+      this.isInitialized = false;
     }
   }
 
@@ -34,7 +51,7 @@ class NotificationService {
 
       // Send push notification to mobile devices
       if (user.fcmTokens?.length > 0) {
-        await this.sendPushNotification(user.fcmTokens, notification);
+        await this.sendMulticastNotification(user.fcmTokens, notification.subject || 'New Notification', notification.message, notification.data);
       }
 
       // Send email notification
@@ -58,44 +75,53 @@ class NotificationService {
     }
   }
 
-  async sendPushNotification(fcmTokens, notification) {
+  async sendPushNotification(token, title, body, data = {}) {
+    if (!this.isInitialized) {
+      logger.warn('Firebase not initialized. Skipping push notification.');
+      return;
+    }
+
     try {
       const message = {
         notification: {
-          title: notification.subject || 'New Notification',
-          body: notification.message
+          title,
+          body
         },
-        data: {
-          type: notification.type || 'general',
-          ...notification.data
-        },
-        tokens: fcmTokens
+        data,
+        token
       };
 
-      const response = await admin.messaging().sendMulticast(message);
-      
-      // Handle failed tokens
-      if (response.failureCount > 0) {
-        const failedTokens = [];
-        response.responses.forEach((resp, idx) => {
-          if (!resp.success) {
-            failedTokens.push(fcmTokens[idx]);
-          }
-        });
-        
-        // Remove failed tokens from user's fcmTokens
-        if (failedTokens.length > 0) {
-          await User.updateMany(
-            { fcmTokens: { $in: failedTokens } },
-            { $pull: { fcmTokens: { $in: failedTokens } } }
-          );
-        }
-      }
-
+      const response = await this.messaging.send(message);
+      logger.info('Successfully sent message:', response);
       return response;
     } catch (error) {
-      logger.error('Push notification error:', error);
-      throw error;
+      logger.error('Error sending push notification:', error);
+      throw new Error('Failed to send push notification');
+    }
+  }
+
+  async sendMulticastNotification(tokens, title, body, data = {}) {
+    if (!this.isInitialized) {
+      logger.warn('Firebase not initialized. Skipping multicast notification.');
+      return;
+    }
+
+    try {
+      const message = {
+        notification: {
+          title,
+          body
+        },
+        data,
+        tokens
+      };
+
+      const response = await this.messaging.sendMulticast(message);
+      logger.info('Successfully sent multicast message:', response);
+      return response;
+    } catch (error) {
+      logger.error('Error sending multicast notification:', error);
+      throw new Error('Failed to send multicast notification');
     }
   }
 
@@ -126,19 +152,65 @@ class NotificationService {
       throw error;
     }
   }
+
+  async subscribeToTopic(token, topic) {
+    if (!this.isInitialized) {
+      logger.warn('Firebase not initialized. Skipping topic subscription.');
+      return;
+    }
+
+    try {
+      const response = await this.messaging.subscribeToTopic(token, topic);
+      logger.info('Successfully subscribed to topic:', response);
+      return response;
+    } catch (error) {
+      logger.error('Error subscribing to topic:', error);
+      throw new Error('Failed to subscribe to topic');
+    }
+  }
+
+  async unsubscribeFromTopic(token, topic) {
+    if (!this.isInitialized) {
+      logger.warn('Firebase not initialized. Skipping topic unsubscription.');
+      return;
+    }
+
+    try {
+      const response = await this.messaging.unsubscribeFromTopic(token, topic);
+      logger.info('Successfully unsubscribed from topic:', response);
+      return response;
+    } catch (error) {
+      logger.error('Error unsubscribing from topic:', error);
+      throw new Error('Failed to unsubscribe from topic');
+    }
+  }
+
+  async sendTopicMessage(topic, title, body, data = {}) {
+    if (!this.isInitialized) {
+      logger.warn('Firebase not initialized. Skipping topic message.');
+      return;
+    }
+
+    try {
+      const message = {
+        notification: {
+          title,
+          body
+        },
+        data,
+        topic
+      };
+
+      const response = await this.messaging.send(message);
+      logger.info('Successfully sent topic message:', response);
+      return response;
+    } catch (error) {
+      logger.error('Error sending topic message:', error);
+      throw new Error('Failed to send topic message');
+    }
+  }
 }
 
-// Create a singleton instance
-let notificationServiceInstance = null;
-
-export const initializeNotificationService = (webSocketService) => {
-  notificationServiceInstance = new NotificationService(webSocketService);
-  return notificationServiceInstance;
-};
-
-export const getNotificationService = () => {
-  if (!notificationServiceInstance) {
-    throw new Error('NotificationService not initialized');
-  }
-  return notificationServiceInstance;
-};
+// Create and export a singleton instance
+const notificationService = new NotificationService();
+export default notificationService;

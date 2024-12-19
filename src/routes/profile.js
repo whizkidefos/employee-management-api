@@ -1,12 +1,12 @@
 import express from 'express';
 import { auth } from '../middleware/auth.js';
 import { validate, schemas } from '../middleware/validation.js';
-import { upload } from '../middleware/upload.js';
+import { uploadProfile, uploadDocument } from '../middleware/upload.js';
 import {
   getProfile,
   updateProfile,
   uploadProfilePhoto,
-  uploadDocument,
+  uploadDocument as uploadDocumentHandler,
   exportProfilePDF,
   addReference,
   updateWorkHistory,
@@ -22,10 +22,10 @@ router.get('/', auth, getProfile);
 router.put('/', auth, validate(schemas.profileUpdate), updateProfile);
 
 // Upload profile photo
-router.post('/photo', auth, upload.single('photo'), uploadProfilePhoto);
+router.post('/photo', auth, uploadProfile, uploadProfilePhoto);
 
 // Upload documents
-router.post('/documents', auth, upload.single('document'), uploadDocument);
+router.post('/documents', auth, uploadDocument, uploadDocumentHandler);
 
 // Export profile to PDF
 router.get('/export', auth, exportProfilePDF);

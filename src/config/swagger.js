@@ -1,4 +1,5 @@
 import swaggerJsdoc from 'swagger-jsdoc';
+import swaggerUi from 'swagger-ui-express';
 
 const options = {
   definition: {
@@ -22,6 +23,17 @@ const options = {
           bearerFormat: 'JWT',
         },
       },
+      schemas: {
+        Error: {
+          type: 'object',
+          properties: {
+            error: {
+              type: 'string',
+              description: 'Error message',
+            },
+          },
+        },
+      },
     },
     security: [
       {
@@ -32,4 +44,15 @@ const options = {
   apis: ['./src/routes/*.js'], // Path to the API routes
 };
 
-export const specs = swaggerJsdoc(options);
+const specs = swaggerJsdoc(options);
+
+export const swaggerDocs = (app) => {
+  // Swagger page
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
+
+  // Docs in JSON format
+  app.get('/api-docs.json', (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(specs);
+  });
+};

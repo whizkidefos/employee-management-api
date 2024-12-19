@@ -163,3 +163,73 @@ export const generateShiftPDF = async (shifts, format) => {
     }
   });
 };
+
+export const generateProfilePDF = async (user) => {
+  return generatePDF({
+    type: 'USER_PROFILE',
+    data: { user }
+  });
+};
+
+const generateUserProfile = (doc, { user }) => {
+  try {
+    // Header
+    doc.fontSize(24).text('Employee Profile', { align: 'center' });
+    doc.moveDown();
+
+    // Personal Information
+    doc.fontSize(16).text('Personal Information');
+    doc.fontSize(12)
+      .text(`Name: ${user.firstName} ${user.lastName}`)
+      .text(`Email: ${user.email}`)
+      .text(`Phone: ${user.phoneNumber}`)
+      .text(`Job Role: ${user.jobRole}`)
+      .text(`Date of Birth: ${formatDate(user.dateOfBirth)}`);
+    doc.moveDown();
+
+    // Address
+    if (user.address) {
+      doc.fontSize(16).text('Address');
+      doc.fontSize(12)
+        .text(`Street: ${user.address.street}`)
+        .text(`Postcode: ${user.address.postcode}`)
+        .text(`Country: ${user.address.country}`);
+      doc.moveDown();
+    }
+
+    // Work History
+    if (user.workHistory?.length > 0) {
+      doc.fontSize(16).text('Work History');
+      doc.fontSize(12);
+      user.workHistory.forEach(work => {
+        doc.text(`${work.position} at ${work.company}`)
+          .text(`Period: ${formatDate(work.startDate)} - ${work.endDate ? formatDate(work.endDate) : 'Present'}`)
+          .moveDown(0.5);
+      });
+      doc.moveDown();
+    }
+
+    // Training & Certifications
+    if (user.trainings?.length > 0) {
+      doc.fontSize(16).text('Training & Certifications');
+      doc.fontSize(12);
+      user.trainings.forEach(training => {
+        doc.text(`Course: ${training.course.title}`)
+          .text(`Completed: ${formatDate(training.completedAt)}`)
+          .text(`Certificate ID: ${training.certificateId || 'N/A'}`)
+          .moveDown(0.5);
+      });
+    }
+
+    // Documents
+    doc.fontSize(16).text('Documents');
+    doc.fontSize(12)
+      .text(`DBS Status: ${user.enhancedDBS?.status || 'Not Provided'}`)
+      .text(`BRP Number: ${user.brpNumber || 'Not Provided'}`)
+      .text(`Right to Work: ${user.rightToWork ? 'Verified' : 'Not Verified'}`);
+
+  } catch (error) {
+    logger.error('Error generating profile PDF:', error);
+    throw new Error('Failed to generate profile PDF');
+  }
+};

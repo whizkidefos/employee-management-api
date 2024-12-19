@@ -1,124 +1,77 @@
+import 'dotenv/config';
 import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
 import mongoose from 'mongoose';
-import { config } from 'dotenv';
-import http from 'http';
-import swaggerUi from 'swagger-ui-express';
+import cors from 'cors';
 import morgan from 'morgan';
-import { initializeNotificationService } from './services/notification.js';
-import WebSocketService from './services/websocket.js';
-import { specs } from './config/swagger.js';
 import logger from './utils/logger.js';
+import notificationService from './services/notification.js';
 
 // Import routes
 import authRoutes from './routes/auth.js';
-import shiftRoutes from './routes/shifts.js';
-import courseRoutes from './routes/courses.js';
+import userRoutes from './routes/user.js';
 import profileRoutes from './routes/profile.js';
+import paymentRoutes from './routes/payment.js';
+import scheduleRoutes from './routes/schedule.js';
+import trainingRoutes from './routes/training.js';
+import documentRoutes from './routes/document.js';
 
-config();
+// Import middleware
+import { errorHandler } from './middleware/error.js';
 
+// Import Swagger configuration
+import { swaggerDocs } from './config/swagger.js';
+
+// Configure express app
 const app = express();
 
-// Security middleware
-app.use(helmet());
+// Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(morgan('combined'));
 
-// Request logging
-app.use(morgan('combined', { stream: { write: message => logger.info(message.trim()) } }));
+// Serve static files from uploads directory
+app.use('/uploads', express.static('uploads'));
 
-// API Documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
+// API routes
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/profile', profileRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/schedule', scheduleRoutes);
+app.use('/api/training', trainingRoutes);
+app.use('/api/documents', documentRoutes);
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
-});
-app.use(limiter);
+// Swagger documentation
+swaggerDocs(app);
 
-// Endpoint-specific rate limits
-const authLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 5, // 5 attempts per hour
-  message: { error: 'Too many login attempts. Please try again later.' }
-});
+// Error handling
+app.use(errorHandler);
 
-app.use('/api/auth/login', authLimiter);
+// Connect to MongoDB
+const mongoUri = process.env.NODE_ENV === 'test' 
+  ? process.env.MONGODB_TEST_URI 
+  : process.env.MONGODB_URI;
 
-// Database connection
-mongoose.connect(process.env.MONGODB_URI, {
-  //   useNewUrlParser: true,
-  //   traceWarnings: true,
-});
+if (!mongoUri) {
+  logger.error('MongoDB URI is not defined in environment variables');
+  process.exit(1);
+}
 
-const db = mongoose.connection;
-db.on('error', console.error.bind(console, 'MongoDB connection error:'));
-db.once('open', () => {
-  logger.info('Connected to MongoDB');
-});
-
-// API versioning prefix
-const API_VERSION = '/api/v1';
-
-// Routes
-app.use(`${API_VERSION}/auth`, authRoutes);
-app.use(`${API_VERSION}/shifts`, shiftRoutes);
-app.use(`${API_VERSION}/courses`, courseRoutes);
-app.use(`${API_VERSION}/profile`, profileRoutes);
-
-// Base route
-app.get('/', (req, res) => {
-  res.send('Employee Management API');
-});
-
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({
-    error: 'Route not found',
-    path: req.path
-  });
-});
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-  logger.error('Unhandled error:', err);
-
-  // Handle specific error types
-  if (err.name === 'ValidationError') {
-    return res.status(400).json({
-      error: 'Validation Error',
-      details: err.details
+mongoose.connect(mongoUri)
+  .then(() => {
+    logger.info('Connected to MongoDB');
+    
+    // Start server
+    const PORT = process.env.PORT || 3300;
+    app.listen(PORT, () => {
+      logger.info(`Server is running on port ${PORT}`);
+      logger.info(`API Documentation available at http://localhost:${PORT}/api-docs`);
     });
-  }
-
-  if (err.name === 'UnauthorizedError') {
-    return res.status(401).json({
-      error: 'Unauthorized',
-      message: err.message
-    });
-  }
-
-  // Default error response
-  res.status(err.status || 500).json({
-    error: 'Internal Server Error',
-    message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
+  })
+  .catch((error) => {
+    logger.error('MongoDB connection error:', error);
+    process.exit(1);
   });
-});
-
-// Websocket server
-const server = http.createServer(app);
-const wsService = new WebSocketService(server);
-export const notificationService = initializeNotificationService(wsService);
-
-const PORT = process.env.PORT || 3300;
-server.listen(PORT, () => {
-  logger.info(`Server is running on port ${PORT}`);
-  logger.info(`API Documentation available at http://localhost:${PORT}/api-docs`);
-});
 
 export default app;

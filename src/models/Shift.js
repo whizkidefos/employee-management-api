@@ -1,33 +1,38 @@
 import mongoose from 'mongoose';
 
 const shiftSchema = new mongoose.Schema({
-  startTime: {
+  facility: {
+    name: { type: String, required: true },
+    location: { type: String, required: true },
+    address: { type: String, required: true }
+  },
+  date: {
     type: Date,
+    required: true
+  },
+  startTime: {
+    type: String,
     required: true
   },
   endTime: {
-    type: Date,
+    type: String,
     required: true
   },
-  location: {
-    name: { type: String, required: true },
-    address: { type: String, required: true },
-    coordinates: {
-      lat: { type: Number, required: true },
-      lng: { type: Number, required: true }
-    }
-  },
-  role: {
+  requiredRole: {
     type: String,
     enum: ['Registered Nurse', 'Healthcare Assistant', 'Support Worker'],
     required: true
   },
+  rate: {
+    type: Number,
+    required: true
+  },
   status: {
     type: String,
-    enum: ['open', 'assigned', 'in-progress', 'completed', 'cancelled'],
-    default: 'open'
+    enum: ['available', 'booked', 'completed', 'cancelled'],
+    default: 'available'
   },
-  assignedTo: {
+  bookedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   },
@@ -36,15 +41,6 @@ const shiftSchema = new mongoose.Schema({
   },
   checkedOutAt: {
     type: Date
-  },
-  currentLocation: {
-    lat: Number,
-    lng: Number,
-    lastUpdated: Date
-  },
-  payRate: {
-    type: Number,
-    required: true
   },
   notes: String,
   createdBy: {
@@ -56,9 +52,21 @@ const shiftSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Index for querying shifts efficiently
-shiftSchema.index({ startTime: 1, status: 1 });
-shiftSchema.index({ assignedTo: 1, status: 1 });
+// Calculate duration in hours
+shiftSchema.virtual('duration').get(function() {
+  if (!this.startTime || !this.endTime) return 0;
+  const [startHour, startMinute] = this.startTime.split(':').map(Number);
+  const [endHour, endMinute] = this.endTime.split(':').map(Number);
+  return (endHour + endMinute/60) - (startHour + startMinute/60);
+});
 
-const Shift = mongoose.model('Shift', shiftSchema);
-export default Shift;
+// Calculate total pay
+shiftSchema.virtual('totalPay').get(function() {
+  return this.duration * this.rate;
+});
+
+// Ensure virtuals are included in JSON output
+shiftSchema.set('toJSON', { virtuals: true });
+shiftSchema.set('toObject', { virtuals: true });
+
+export default mongoose.model('Shift', shiftSchema);

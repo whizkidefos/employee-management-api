@@ -196,5 +196,125 @@ export const schemas = {
     sortCode: Joi.string().required(),
     accountNumber: Joi.string().required(),
     bankName: Joi.string().required()
-  })
+  }),
+
+  userCreate: Joi.object({
+    firstName: Joi.string().required().trim(),
+    lastName: Joi.string().required().trim(),
+    email: Joi.string().email().required().trim(),
+    phoneNumber: Joi.string().required().trim(),
+    jobRole: Joi.string().valid('Registered Nurse', 'Healthcare Assistant', 'Support Worker').required(),
+    password: Joi.string().min(8).required()
+  }),
+
+  userUpdate: Joi.object({
+    firstName: Joi.string().trim(),
+    lastName: Joi.string().trim(),
+    email: Joi.string().email().trim(),
+    phoneNumber: Joi.string().trim(),
+    jobRole: Joi.string().valid('Registered Nurse', 'Healthcare Assistant', 'Support Worker'),
+    password: Joi.string().min(8)
+  }),
+
+  fcmToken: Joi.object({
+    token: Joi.string().required()
+  }),
+
+  shiftCreate: Joi.object({
+    facility: Joi.object({
+      name: Joi.string().required(),
+      location: Joi.string().required(),
+      address: Joi.string().required()
+    }).required(),
+    date: Joi.date().required(),
+    startTime: Joi.string().required(),
+    endTime: Joi.string().required(),
+    requiredRole: Joi.string().valid('Registered Nurse', 'Healthcare Assistant', 'Support Worker').required(),
+    rate: Joi.number().required(),
+    notes: Joi.string()
+  }),
+
+  shiftUpdate: Joi.object({
+    facility: Joi.object({
+      name: Joi.string(),
+      location: Joi.string(),
+      address: Joi.string()
+    }),
+    date: Joi.date(),
+    startTime: Joi.string(),
+    endTime: Joi.string(),
+    requiredRole: Joi.string().valid('Registered Nurse', 'Healthcare Assistant', 'Support Worker'),
+    rate: Joi.number(),
+    notes: Joi.string()
+  }),
+
+  courseCreate: Joi.object({
+    title: Joi.string().required().trim(),
+    description: Joi.string().required(),
+    category: Joi.string().valid('COSHH', 'Conflict Resolution', 'Domestic Violence', 'Epilepsy Awareness', 'Other').required(),
+    requiredRole: Joi.string().valid('Registered Nurse', 'Healthcare Assistant', 'Support Worker').required(),
+    startDate: Joi.date().required(),
+    endDate: Joi.date().min(Joi.ref('startDate')).required(),
+    location: Joi.string().required(),
+    maxParticipants: Joi.number().integer().min(1).required(),
+    price: Joi.number().min(0).required(),
+    duration: Joi.number().integer().min(1).required(),
+    modules: Joi.array().items(
+      Joi.object({
+        title: Joi.string().required(),
+        description: Joi.string(),
+        duration: Joi.number().integer().min(1),
+        content: Joi.string(),
+        order: Joi.number().integer().required(),
+        resources: Joi.array().items(
+          Joi.object({
+            title: Joi.string().required(),
+            type: Joi.string().required(),
+            url: Joi.string().required()
+          })
+        )
+      })
+    ),
+    thumbnail: Joi.string()
+  }),
+
+  courseUpdate: Joi.object({
+    title: Joi.string().trim(),
+    description: Joi.string(),
+    category: Joi.string().valid('COSHH', 'Conflict Resolution', 'Domestic Violence', 'Epilepsy Awareness', 'Other'),
+    requiredRole: Joi.string().valid('Registered Nurse', 'Healthcare Assistant', 'Support Worker'),
+    startDate: Joi.date(),
+    endDate: Joi.date().min(Joi.ref('startDate')),
+    location: Joi.string(),
+    maxParticipants: Joi.number().integer().min(1),
+    price: Joi.number().min(0),
+    duration: Joi.number().integer().min(1),
+    modules: Joi.array().items(
+      Joi.object({
+        title: Joi.string().required(),
+        description: Joi.string(),
+        duration: Joi.number().integer().min(1),
+        content: Joi.string(),
+        order: Joi.number().integer().required(),
+        resources: Joi.array().items(
+          Joi.object({
+            title: Joi.string().required(),
+            type: Joi.string().required(),
+            url: Joi.string().required()
+          })
+        )
+      })
+    ),
+    thumbnail: Joi.string(),
+    isActive: Joi.boolean()
+  }),
+
+  documentStatus: Joi.object({
+    status: Joi.string().valid('approved', 'rejected').required(),
+    comment: Joi.string().when('status', {
+      is: 'rejected',
+      then: Joi.required(),
+      otherwise: Joi.optional()
+    })
+  }),
 };
