@@ -1,7 +1,8 @@
 import webSocketService from './websocket.js';
-import sendEmail from './email.js';
-import sendSMS from './sms.js';
+import { sendEmail } from './email.js';
+import { sendSMS } from './sms.js';
 import User from '../models/User.js';
+import logger from '../utils/logger.js';
 
 class NotificationService {
   constructor(webSocketService) {
@@ -51,9 +52,7 @@ export const initializeNotificationService = (webSocketService) => {
 
 export const getNotificationService = () => {
   if (!notificationServiceInstance) {
-    throw new Error('NotificationService not initialized');
+    throw new Error('Notification service not initialized');
   }
   return notificationServiceInstance;
 };
-
-export default NotificationService;

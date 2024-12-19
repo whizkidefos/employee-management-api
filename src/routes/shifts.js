@@ -1,16 +1,27 @@
 import express from 'express';
 import { auth, adminAuth } from '../middleware/auth.js';
-import { createShift } from '../controllers/shifts/create.js';
-import { assignShift } from '../controllers/shifts/assign.js';
-import { checkIn, updateLocation } from '../controllers/shifts/tracking.js';
-import { exportShiftReport } from '../controllers/shifts/export.js';
+import { validate, schemas } from '../middleware/validation.js';
+import {
+  createShift,
+  getShifts,
+  assignShift,
+  checkIn,
+  updateLocation,
+  checkOut,
+  exportShiftsPDF
+} from '../controllers/shifts/shiftController.js';
 
 const router = express.Router();
 
-router.post('/create', adminAuth, createShift);
-router.post('/assign', adminAuth, assignShift);
-router.post('/check-in', auth, checkIn);
-router.post('/location', auth, updateLocation);
-router.get('/export', adminAuth, exportShiftReport);
+// Admin routes
+router.post('/', adminAuth, validate(schemas.shiftCreation), createShift);
+router.post('/:shiftId/assign', adminAuth, validate(schemas.shiftAssignment), assignShift);
+router.get('/export', adminAuth, exportShiftsPDF);
+
+// User routes
+router.get('/', auth, getShifts);
+router.post('/:shiftId/check-in', auth, validate(schemas.locationUpdate), checkIn);
+router.post('/:shiftId/location', auth, validate(schemas.locationUpdate), updateLocation);
+router.post('/:shiftId/check-out', auth, validate(schemas.locationUpdate), checkOut);
 
 export default router;

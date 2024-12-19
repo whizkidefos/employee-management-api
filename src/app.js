@@ -8,6 +8,10 @@ import http from 'http';
 import { initializeNotificationService } from './services/notification.js';
 import WebSocketService from './services/websocket.js';
 
+// Import routes
+import authRoutes from './routes/auth.js';
+import shiftRoutes from './routes/shifts.js';
+
 config();
 
 const app = express();
@@ -37,6 +41,26 @@ db.once('open', () => {
   console.log('Connected to MongoDB');
 });
 
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/shifts', shiftRoutes);
+
+// Base route
+app.get('/', (req, res) => {
+  res.send('Employee Management API');
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: 'Something went wrong!' });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ error: 'Route not found' });
+});
+
 // Websocket server
 const server = http.createServer(app);
 const wsService = new WebSocketService(server);
@@ -44,11 +68,6 @@ export const notificationService = initializeNotificationService(wsService);
 
 server.listen(process.env.PORT, () => {
   console.log(`Server is running on port ${process.env.PORT}`);
-});
-
-// Routes
-app.get('/', (req, res) => {
-  res.send('Hello World!');
 });
 
 export default app;
